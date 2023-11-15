@@ -6,3 +6,9 @@ sky:
     database: sky_take_out
     username: root
     password: jpt1452013
+  alioss:
+    #采用引用形式，到时候直接改环境就可以了
+    endpoint: https://oss-cn-hangzhou.aliyuncs.com
+    access-key-id: LTAI5tHgWxDKLJUfpS1WWHt7
+    access-key-secret: PjHKpQuBOozjWG2Yvqw7j0ugK9ZznK
+    bucket-name: loveminmin
