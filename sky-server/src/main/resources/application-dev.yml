@@ -12,3 +12,7 @@ sky:
     access-key-id: LTAI5tHgWxDKLJUfpS1WWHt7
     access-key-secret: PjHKpQuBOozjWG2Yvqw7j0ugK9ZznK
     bucket-name: loveminmin
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
