@@ -9,6 +9,7 @@ import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.DishFlavor;
 import com.sky.exception.DeletionNotAllowedException;
+import com.sky.exception.DishDisableFailedException;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
@@ -18,7 +19,6 @@ import com.sky.vo.DishVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -160,6 +160,36 @@ public class DishServiceImpl implements DishService {
             });
             //批量插入？sql可以批量插入？
             dishFlavorMapper.insertBatch(flavors);
+        }
+    }
+
+    /**
+     * 根据分类id查询菜品
+     * @param categoryId
+     * @return
+     */
+    @Override
+    public List<Dish> getByCategoryId(Long categoryId) {
+        List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
+        return dishes;
+    }
+
+    @Override
+    public void bp(Integer status, Long id) {
+        //先判断要修改成什么状态，如果是起售的话，直接改就行了，如果是停售就要查一下对应套餐信息了
+        Dish dish = dishMapper.getById(id);
+        dish.setStatus(status);
+        if(status == StatusConstant.ENABLE){
+            dishMapper.update(dish);
+        }else{//禁用菜品
+            List<Integer> statuses = setmealDishMapper.querySetmealStatusByDishId(id);
+            for (Integer sta : statuses) {
+                //如果套餐起售中，禁用失败
+                if(sta == StatusConstant.ENABLE){
+                    throw new DishDisableFailedException(MessageConstant.DISH_DISABLE_FAILED);
+                }
+            }
+            dishMapper.update(dish);
         }
     }
 }

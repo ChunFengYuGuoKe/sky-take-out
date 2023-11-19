@@ -17,6 +17,7 @@ public class MessageConstant {
     public static final String LOGIN_FAILED = "登录失败";
     public static final String UPLOAD_FAILED = "文件上传失败";
     public static final String SETMEAL_ENABLE_FAILED = "套餐内包含未启售菜品，无法启售";
+    public static final String SETMEAL_NO_DISH = "套餐内未包含菜品，无法添加";
     public static final String PASSWORD_EDIT_FAILED = "密码修改失败";
     public static final String DISH_ON_SALE = "起售中的菜品不能删除";
     public static final String SETMEAL_ON_SALE = "起售中的套餐不能删除";
@@ -25,4 +26,6 @@ public class MessageConstant {
     public static final String ORDER_NOT_FOUND = "订单不存在";
 
     public static final String ALREADY_EXIST = "已存在";
+
+    public static final String DISH_DISABLE_FAILED = "菜品关联套餐启用中，禁止停售";
 }
