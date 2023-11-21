@@ -38,5 +38,10 @@ public interface CategoryService {
 
     void delete(Long id);
 
+    /**
+     * 根据类型查询分类
+     * @param type
+     * @return
+     */
     ArrayList<Category> getByType(Integer type);
 }
