@@ -9,8 +9,8 @@ sky:
   alioss:
     #采用引用形式，到时候直接改环境就可以了
     endpoint: https://oss-cn-hangzhou.aliyuncs.com
-    access-key-id: LTAI5tHgWxDKLJUfpS1WWHt7
-    access-key-secret: PjHKpQuBOozjWG2Yvqw7j0ugK9ZznK
+    access-key-id: ********
+    access-key-secret: ********
     bucket-name: loveminmin
   redis:
     host: localhost
