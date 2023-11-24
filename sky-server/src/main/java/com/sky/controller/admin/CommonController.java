@@ -1,5 +1,6 @@
 package com.sky.controller.admin;
 
+import com.aliyuncs.exceptions.ClientException;
 import com.sky.constant.MessageConstant;
 import com.sky.result.Result;
 import com.sky.utils.AliOssUtil;
@@ -45,7 +46,7 @@ public class CommonController {
             //文件的请求路径
             String filePath = aliOssUtil.upload(file.getBytes(), objectName);
             return Result.success(filePath);
-        } catch (IOException e) {
+        } catch (IOException | ClientException e) {
             log.error("文件上传失败：{}", e);
         }
         return Result.error(MessageConstant.UPLOAD_FAILED);
