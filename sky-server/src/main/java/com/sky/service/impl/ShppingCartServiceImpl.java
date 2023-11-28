@@ -14,6 +14,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -93,5 +94,28 @@ public class ShppingCartServiceImpl implements ShoppingcartService {
     public void clean() {
         Long userId = BaseContext.getCurrentId();
         shoppingCartMapper.deleteByUserId(userId);
+    }
+
+    /**
+     * 删除购物车中一个商品
+     * @param shoppingCartDTO
+     * @return
+     */
+    @Override
+    public void sub(ShoppingCartDTO shoppingCartDTO) {
+        //先要判断购物车中的商品是否只剩一个了
+        ShoppingCart shoppingCart = new ShoppingCart();
+        BeanUtils.copyProperties(shoppingCartDTO, shoppingCart);
+        shoppingCart.setUserId(BaseContext.getCurrentId());
+        List<ShoppingCart> list = shoppingCartMapper.list(shoppingCart);
+
+        ShoppingCart cart = list.get(0);
+        //该商品数大于1，将该商品数量减一，然后更新
+        if(cart.getNumber() > 1) {
+            cart.setNumber(cart.getNumber() - 1);
+            shoppingCartMapper.updateNumberById(cart);
+        } else if(cart.getNumber() == 1) {
+            shoppingCartMapper.deleteById(cart);
+        }
     }
 }

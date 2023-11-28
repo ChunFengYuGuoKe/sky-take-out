@@ -1,0 +1,11 @@
+@startuml
+
+autonumber
+OrderServiceImpl -> AddressBookMapper: getById(ordersSubmitDTO.getAddressBookId())
+AddressBookMapper --> OrderServiceImpl: addressBook
+alt addressBook是否为空
+    OrderServiceImpl -> ShoppingCartMapper: list(shoppingCart)
+else addressBook为空
+    OrderServiceImpl -> AddressBookBusinessException: 抛出异常MessageConstant.ADDRESS_BOOK_IS_NULL
+
+@enduml
