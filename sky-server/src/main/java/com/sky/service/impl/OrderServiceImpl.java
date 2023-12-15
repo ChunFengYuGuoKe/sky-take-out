@@ -2,19 +2,23 @@ package com.sky.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.*;
+import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
 import com.sky.websocket.WebSocketServer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -89,6 +93,8 @@ public class OrderServiceImpl implements OrderService {
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
+        orders.setPackAmount(shoppingCartList.size()*50);
+        orders.setAmount(orders.getAmount().add(new BigDecimal(orders.getPackAmount())));
 
         orderMapper.insert(orders);
 
@@ -179,4 +185,184 @@ public class OrderServiceImpl implements OrderService {
         webSocketServer.sendToAllClient(json);
     }
 
+    /**
+     * 分页查询历史订单
+     *
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public PageResult historyOrders(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        Page<OrderVO> historyOrders = orderMapper.historyOrders(BaseContext.getCurrentId());
+        for (OrderVO historyOrder : historyOrders) {
+            List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(historyOrder.getId());
+            historyOrder.setOrderDetailList(orderDetailList);
+        }
+        PageResult historyOrderPages = new PageResult();
+        historyOrderPages.setTotal(historyOrders.getTotal());
+        historyOrderPages.setRecords(historyOrders.getResult());
+        return historyOrderPages;
+    }
+
+    /**
+     * 根据订单id查询订单明细
+     * @param id
+     * @return
+     */
+    @Override
+    public OrderVO orderDetail(Long id) {
+        Orders orders = new Orders();
+        orders.setId(id);
+        List<Orders> list = orderMapper.list(orders);
+
+        OrderVO orderVO = new OrderVO();
+        BeanUtils.copyProperties(list.get(0), orderVO);
+
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+        orderVO.setOrderDetailList(orderDetailList);
+
+        return orderVO;
+    }
+
+    /**
+     * 再来一单
+     * @param id
+     */
+    //测试再来一单功能
+    @Override
+    public void repeatOrder(Long id) {
+        //1.根据id查询已有订单数据，这里的可读性不是很好
+        Orders orders = new Orders();
+        orders.setId(id);
+        List<Orders> list = orderMapper.list(orders);
+        orders = list.get(0);
+
+        //2.向订单表插入一条数据
+        orders.setOrderTime(LocalDateTime.now());
+        orders.setNumber(String.valueOf(System.currentTimeMillis()));
+        orders.setStatus(Orders.PENDING_PAYMENT);
+        orders.setPayStatus(Orders.UN_PAID);
+        orders.setCheckoutTime(null);
+        orderMapper.insert(orders);
+
+        //3.向订单明细表插入n条数据
+        List<OrderDetail> orderDetailList = orderDetailMapper.getByOrderId(id);
+        for (OrderDetail orderDetail : orderDetailList) {
+            //设置订单明细关联的订单id
+            orderDetail.setOrderId(orders.getId());
+        }
+        orderDetailMapper.insertBatch(orderDetailList);
+    }
+
+    /**
+     * 催单
+     * @param id
+     */
+    @Override
+    public void reminder(Long id) {
+        Orders order = orderMapper.getById(id);
+
+        if(order == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        Map map = new HashMap();
+        map.put("type", 2);//1表示来单提醒 2表示客户催单
+        map.put("orderId", id);
+        map.put("content", "订单号" + order.getNumber());
+
+        //通过websocket向管理端浏览器推送消息
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
+    }
+
+    /**
+     * 取消订单
+     * @param id
+     */
+    @Override
+    public void cancelOrder(Long id) {
+        orderMapper.cancelOrder(id, LocalDateTime.now());
+    }
+
+    /**
+     * 商户取消订单
+     * @param ordersCancelDTO
+     */
+    @Override
+    public void adminCancelOrder(OrdersCancelDTO ordersCancelDTO) {
+        orderMapper.adminCancelOrder(ordersCancelDTO, LocalDateTime.now());
+    }
+
+    /**
+     * 各个状态的订单数量统计
+     * @return
+     */
+    @Override
+    public OrderStatisticsVO getOrderStatistics() {
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        orderStatisticsVO.setToBeConfirmed(orderMapper.getOrderStatistics(Orders.TO_BE_CONFIRMED));
+        orderStatisticsVO.setConfirmed(orderMapper.getOrderStatistics(Orders.CONFIRMED));
+        orderStatisticsVO.setDeliveryInProgress(orderMapper.getOrderStatistics(Orders.DELIVERY_IN_PROGRESS));
+        return orderStatisticsVO;
+    }
+
+    /**
+     * 完成订单
+     * @param id
+     */
+    @Override
+    public void completeOrder(Long id) {
+        orderMapper.completeOrder(id);
+    }
+
+    /**
+     * 拒单
+     * @param ordersRejectionDTO
+     */
+    @Override
+    public void rejectOrder(OrdersRejectionDTO ordersRejectionDTO) {
+        Orders orders = new Orders();
+        BeanUtils.copyProperties(ordersRejectionDTO, orders);
+        orderMapper.update(orders);
+    }
+
+    /**
+     * 接单
+     * @param id
+     */
+    @Override
+    public void confirmOrder(Long id) {
+        Orders orders = new Orders();
+        orders.setId(id);
+        orders.setStatus(Orders.CONFIRMED);
+        orderMapper.update(orders);
+    }
+
+    /**
+     * 派送订单
+     * @param id
+     */
+    @Override
+    public void deliveryOrder(Long id) {
+        Orders orders = new Orders();
+        orders.setId(id);
+        orders.setStatus(Orders.DELIVERY_IN_PROGRESS);
+        orderMapper.update(orders);
+    }
+
+    /**
+     * 条件查询订单
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        Page<Orders> searchedOrders = orderMapper.conditionSearch(ordersPageQueryDTO);
+        PageResult pageResult = new PageResult();
+        pageResult.setTotal(searchedOrders.getTotal());
+        pageResult.setRecords(searchedOrders.getResult());
+        return pageResult;
+    }
 }

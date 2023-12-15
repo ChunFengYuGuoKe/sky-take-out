@@ -45,4 +45,45 @@
         </set>
         where id = #{id}
     </update>
+
+    <select id="list" resultType="com.sky.entity.Orders">
+        select * from orders
+        <where>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="payStatus != null">
+                and pay_status = #{payStatus}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="deliveryStatus != null">
+                and delivery_status = #{deliveryStatus}
+            </if>
+        </where>
+    </select>
+    <select id="conditionSearch" resultType="com.sky.entity.Orders">
+        select * from orders
+        <where>
+            <if test="beginTime != null and endTime != null">
+                and order_time between #{beginTime} and #{endTime}
+            </if>
+            <if test="number != null">
+                and number = #{number}
+            </if>
+            <if test="phone != null">
+                and phone = #{phone}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="userId != null">
+                and user_id = #{userId}
+            </if>
+        </where>
+    </select>
 </mapper>
