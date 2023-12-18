@@ -90,7 +90,7 @@ public class OrderController {
     }
 
     /**
-     * 催单，这个功能应该怎么实现呢？要通知管理端吧？怎么通知呢？
+     * 催单，这个功能应该怎么实现呢？要通知管理端吧？怎么通知呢？通过websocket
      * @param id
      * @return
      */
