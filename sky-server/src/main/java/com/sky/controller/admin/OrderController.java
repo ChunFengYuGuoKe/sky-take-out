@@ -39,7 +39,7 @@ public class OrderController {
      * 各个状态的订单数量统计
      * @return
      */
-    @GetMapping("/statics")
+    @GetMapping("/statistics")
     @ApiOperation("各个状态的订单数量统计")
     public Result<OrderStatisticsVO> getOrderStatistics(){
         OrderStatisticsVO orderStatisticsVO = orderService.getOrderStatistics();
@@ -114,6 +114,7 @@ public class OrderController {
     @GetMapping("/conditionSearch")
     @ApiOperation("条件搜索订单")
     public Result<PageResult> conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        log.info("条件搜索订单:{}", ordersPageQueryDTO);
         PageResult searchedOrders = orderService.conditionSearch(ordersPageQueryDTO);
         return Result.success(searchedOrders);
     }
